@@ -4,6 +4,8 @@ pragma solidity 0.8.26;
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
+import "forge-std/console.sol";
+
 error ZeroValue();
 
 contract BrainWave is ERC20 {
@@ -31,10 +33,11 @@ contract BrainWave is ERC20 {
     // MODIFIERS
     modifier nonZero(uint v) {
         require(v > 0, ZeroValue());
+        _;
     }
 
     // purchase BWT from the specified amount of USDT
-    function purchase(uint _usdt) external nonZero(_usdt) {
+    function purchase(uint256 _usdt) external nonZero(_usdt) {
         usdtBalance += _usdt;
         // pull `_usdt` amount of USDT from buyer
         USDT.safeTransferFrom(msg.sender, address(this), _usdt);
@@ -44,31 +47,53 @@ contract BrainWave is ERC20 {
         _mint(msg.sender, halfMintAmount);
         _mint(admin, halfMintAmount);
 
-        price = usdtBalance / totalSupply();
+        price = usdtBalance / (totalSupply() / (10 ** decimals()));
     }
 
-    function _transfer(
+    function transfer(
+        address to,
+        uint256 value
+    ) public override returns (bool) {
+        // burn 20% of transfer amount
+        uint burnAmount = (value * 2_000) / 10_000;
+        _burn(msg.sender, burnAmount);
+
+        // transfer the rest 80% of transfer amount
+        super.transfer(to, value - burnAmount);
+
+        return true;
+    }
+
+    function transferFrom(
         address from,
         address to,
         uint256 value
-    ) internal override {
+    ) public override returns (bool) {
         // burn 20% of transfer amount
         uint burnAmount = (value * 2_000) / 10_000;
         _burn(from, burnAmount);
 
         // transfer the rest 80% of transfer amount
-        super._transfer(from, to, value - burnAmount);
+        super.transferFrom(from, to, value - burnAmount);
+
+        return true;
     }
 
     // VIEW FUNCTIONS
 
     // get the amount of BWT tokens that could be purchased from `_usdt` USDT
-    function getAmountOf(uint256 _usdt) public returns (uint256 amount) {
-        amount = _usdt / price;
+    /**
+    @param _usdt The amount of USDT with decimals
+    */
+    function getAmountOf(uint256 _usdt) public view returns (uint256 amount) {
+        amount = (_usdt / price) * 10 ** decimals();
     }
 
     // get of price of `_amount` of BWT tokens in USDT
-    function getPriceOf(uint256 _amount) public returns (uint256 price_) {
+    /**
+    @param _amount The amount of BWT without decimals
+    */
+    function getPriceOf(uint256 _amount) public view returns (uint256 price_) {
         price_ = _amount * price;
     }
 }
