@@ -19,20 +19,39 @@ contract BWTTest is Test {
         usdt = new USDT();
         bwt = new BrainWave(address(usdt), ADMIN);
 
-        usdt.mint(BUYER, type(uint256).max/2);
-        usdt.mint(BUYER2, type(uint256).max/2);
-        
+        usdt.mint(BUYER, type(uint256).max / 2);
+        usdt.mint(BUYER2, type(uint256).max / 2);
+
         vm.prank(BUYER);
         usdt.approve(address(bwt), type(uint256).max);
-        
+
         vm.prank(BUYER2);
         usdt.approve(address(bwt), type(uint256).max);
     }
 
-    function testPurchaseWithHundredUSDT1() public {
-        vm.startPrank(BUYER);
-        bwt.purchase(HUNDRED_USDT);
+    function purchaseBWT(address purchaser, uint amt) private {
+        vm.prank(purchaser);
+        bwt.purchase(amt);
+    }
 
+    function testTransfer() public {
+        purchaseBWT(BUYER, 300e6);
+        assertEq(bwt.totalSupply(), 240 ether); // 20% burns
+
+        assert(bwt.balanceOf(BUYER) == 120 ether);
+        assert(bwt.balanceOf(BUYER2) == 0);
+
+        vm.prank(BUYER);
+        bwt.transfer(BUYER2, 100 ether);
+
+        assert(bwt.balanceOf(BUYER2) == 80 ether);
+        assertEq(bwt.totalSupply(), 220 ether);  // total supply got reduced by 20% of the transfer amount
+    }
+
+    function testPurchaseWithHundredUSDT1() public {
+        purchaseBWT(BUYER, 100e6);
+
+        assertEq(bwt.balanceOf(BUYER), 40 ether);
         assertEq(usdt.balanceOf(address(bwt)), HUNDRED_USDT);
         assertEq(bwt.totalSupply(), 80 ether);
         assertEq(bwt.price(), 125e4);
@@ -40,10 +59,10 @@ contract BWTTest is Test {
 
     function testPurchaseWithHundredUSDT2() public {
         testPurchaseWithHundredUSDT1();
-        vm.startPrank(BUYER2);
-        bwt.purchase(HUNDRED_USDT);
+        purchaseBWT(BUYER2, 100e6);
 
-        assertEq(usdt.balanceOf(address(bwt)), 2*HUNDRED_USDT);
+        assertEq(bwt.balanceOf(BUYER2), 32 ether);
+        assertEq(usdt.balanceOf(address(bwt)), 2 * HUNDRED_USDT);
         assertEq(bwt.totalSupply(), 144 ether);
         assertEq(bwt.price(), 138_8888);
     }
