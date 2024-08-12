@@ -17,7 +17,7 @@ contract BWTTest is Test {
 
     function setUp() public {
         usdt = new USDT();
-        bwt = new BrainWave(usdt, ADMIN);
+        bwt = new BrainWave(address(usdt), ADMIN);
 
         usdt.mint(BUYER, type(uint256).max/2);
         usdt.mint(BUYER2, type(uint256).max/2);

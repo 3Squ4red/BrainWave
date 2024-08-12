@@ -22,8 +22,8 @@ contract BrainWave is ERC20 {
     // prevents manipulation from flash loans
     uint256 private usdtBalance;
 
-    constructor(IERC20 _usdt, address _admin) ERC20("BrainWave", "BWT") {
-        USDT = _usdt;
+    constructor(address _usdt, address _admin) ERC20("BrainWave", "BWT") {
+        USDT = IERC20(_usdt);
         admin = _admin;
 
         // the initial price of 1 BWT would be 1 USDT
